@@ -1911,34 +1911,46 @@
   }
 
   function stripVocalsRange(buf, startSec, endSec, amount) {
-    if (buf.numberOfChannels < 2) throw new Error("Voice strip needs a stereo song (left and right).");
+    if (buf.numberOfChannels < 2) {
+      throw new Error("Voice strip needs a stereo song (left + right). Mono files cannot strip center vocals.");
+    }
     const out = cloneBuffer(buf);
     const sr = buf.sampleRate;
-    const start = Math.max(0, Math.floor(startSec * sr));
-    const end = Math.min(buf.length, Math.floor(endSec * sr));
+    let a = Math.max(0, Math.min(startSec, buf.duration));
+    let b = Math.max(0, Math.min(endSec, buf.duration));
+    if (b < a) { const t = a; a = b; b = t; }
+    // If almost nothing is selected, strip the whole clip.
+    if (b - a < 0.15) {
+      a = 0;
+      b = buf.duration;
+    }
+    const start = Math.max(0, Math.floor(a * sr));
+    const end = Math.min(buf.length, Math.floor(b * sr));
     const L = out.getChannelData(0);
     const R = out.getChannelData(1);
     const strength = Math.max(0, Math.min(1, amount));
-    // Soft curve: less hollow at mid settings, still strong near 100%.
-    const cut = Math.pow(strength, 0.85) * 0.92;
-    // Band-limited mid cut: protect bass/kick, strip mainly vocal range.
-    const loHz = 180;
-    const hiHz = 4200;
-    const aLo = Math.exp((-2 * Math.PI * loHz) / sr);
-    const aHi = Math.exp((-2 * Math.PI * hiHz) / sr);
-    let midLp = 0;
-    let bandLp = 0;
+    // Stronger than before: near 100% almost kills centered vocal band.
+    const cut = Math.pow(strength, 0.65);
+    // Keep bass under ~130Hz; strip most centered content above that.
+    const aBass = Math.exp((-2 * Math.PI * 130) / sr);
+    const aTop = Math.exp((-2 * Math.PI * 7000) / sr);
+    let bassLp = 0;
+    let midBandLp = 0;
     for (let i = start; i < end; i++) {
       const mid = (L[i] + R[i]) * 0.5;
       const side = (L[i] - R[i]) * 0.5;
-      midLp = aLo * midLp + (1 - aLo) * mid;
-      const high = mid - midLp;
-      bandLp = aHi * bandLp + (1 - aHi) * high;
-      const vocalBand = bandLp;
-      // Keep low mid (bass) and extreme highs; cut centered vocal band.
-      const newMid = mid - vocalBand * cut;
-      // Mild side lift so music doesn't collapse after mid cut.
-      const newSide = side * (1 + 0.12 * cut);
+      bassLp = aBass * bassLp + (1 - aBass) * mid;
+      const noBass = mid - bassLp;
+      midBandLp = aTop * midBandLp + (1 - aTop) * noBass;
+      const vocalish = midBandLp;
+      const air = noBass - midBandLp;
+      // Protect kick/bass, remove centered vocals hard, soften air a bit.
+      const newMid =
+        bassLp * (1 - 0.05 * cut) +
+        vocalish * (1 - cut * 0.97) +
+        air * (1 - cut * 0.45);
+      // Classic karaoke side emphasis so remaining music stays audible.
+      const newSide = side * (1 + 0.35 * cut);
       L[i] = Math.max(-1, Math.min(1, newMid + newSide));
       R[i] = Math.max(-1, Math.min(1, newMid - newSide));
     }
@@ -2677,9 +2689,15 @@
   els.stripVoiceBtn.addEventListener("click", () => {
     if (!state.buffer) return;
     try {
-      const next = stripVocalsRange(state.buffer, state.sel.start, state.sel.end, Number(els.vocalAmt.value) / 100);
+      clampSel();
+      const amt = Number(els.vocalAmt.value) / 100;
+      if (amt < 0.05) {
+        toast("Turn Strip up first (try 70–100%).");
+        return;
+      }
+      const next = stripVocalsRange(state.buffer, state.sel.start, state.sel.end, amt);
       setClip(next, state.name, { keepSel: true, selectRange: { ...state.sel } });
-      toast("Stripped centered voice from the selection.");
+      toast("Voice strip applied. Play the selection to hear it.");
     } catch (err) {
       toast(err.message || "Could not strip voice.");
     }
