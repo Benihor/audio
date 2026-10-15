@@ -1918,13 +1918,29 @@
     const end = Math.min(buf.length, Math.floor(endSec * sr));
     const L = out.getChannelData(0);
     const R = out.getChannelData(1);
-    const keepMid = 1 - amount;
+    const strength = Math.max(0, Math.min(1, amount));
+    // Soft curve: less hollow at mid settings, still strong near 100%.
+    const cut = Math.pow(strength, 0.85) * 0.92;
+    // Band-limited mid cut: protect bass/kick, strip mainly vocal range.
+    const loHz = 180;
+    const hiHz = 4200;
+    const aLo = Math.exp((-2 * Math.PI * loHz) / sr);
+    const aHi = Math.exp((-2 * Math.PI * hiHz) / sr);
+    let midLp = 0;
+    let bandLp = 0;
     for (let i = start; i < end; i++) {
-      const mid = (L[i] + R[i]) / 2;
-      const side = (L[i] - R[i]) / 2;
-      const m = mid * keepMid;
-      L[i] = Math.max(-1, Math.min(1, m + side));
-      R[i] = Math.max(-1, Math.min(1, m - side));
+      const mid = (L[i] + R[i]) * 0.5;
+      const side = (L[i] - R[i]) * 0.5;
+      midLp = aLo * midLp + (1 - aLo) * mid;
+      const high = mid - midLp;
+      bandLp = aHi * bandLp + (1 - aHi) * high;
+      const vocalBand = bandLp;
+      // Keep low mid (bass) and extreme highs; cut centered vocal band.
+      const newMid = mid - vocalBand * cut;
+      // Mild side lift so music doesn't collapse after mid cut.
+      const newSide = side * (1 + 0.12 * cut);
+      L[i] = Math.max(-1, Math.min(1, newMid + newSide));
+      R[i] = Math.max(-1, Math.min(1, newMid - newSide));
     }
     return out;
   }
