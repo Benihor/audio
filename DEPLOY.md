@@ -2,7 +2,24 @@
 
 This makes ClipCut accessible on the public internet. Payments can stay in sandbox or be ignored until later.
 
-## Recommended Host: Render
+## Recommended Host: Vercel
+
+ClipCut is FastAPI + static files. This repo already includes `api/index.py` and `vercel.json`.
+
+1. Go to https://vercel.com → Add New → Project.
+2. Import `Benihor/audio` (GitHub).
+3. Framework Preset: **Other** (do not pick Next.js).
+4. Root Directory: leave blank (repo root).
+5. Add environment variables (same as below). Set `APP_URL` to your Vercel URL after first deploy, then redeploy.
+6. Deploy.
+
+After deploy, open `https://YOUR-PROJECT.vercel.app`.
+
+Update Supabase Site URL + Redirect URLs to that Vercel URL.
+
+If a deploy fails with a Python / ASGI error, check the Vercel function logs for `api/index.py`.
+
+## Alternate Host: Render
 
 1. Create a GitHub repo for `C:\Users\binih\clipcut`.
 2. Go to https://render.com
