@@ -498,16 +498,21 @@ def health():
 PUBLIC_FILES = {"index.html", "styles.css", "app.js", "billing.js", "i18n.js"}
 
 
+def _public_path(name: str) -> Path:
+    for base in (ROOT / "public", ROOT):
+        path = base / name
+        if path.is_file():
+            return path
+    raise HTTPException(404)
+
+
 @app.get("/")
 def index():
-    return FileResponse(ROOT / "index.html")
+    return FileResponse(_public_path("index.html"))
 
 
 @app.get("/{name}")
 def public_file(name: str):
     if name not in PUBLIC_FILES:
         raise HTTPException(404)
-    path = ROOT / name
-    if not path.is_file():
-        raise HTTPException(404)
-    return FileResponse(path)
+    return FileResponse(_public_path(name))
