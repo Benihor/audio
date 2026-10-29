@@ -4,17 +4,24 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import Cookie, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from supabase import Client, create_client
 
-ROOT = Path(__file__).resolve().parent.parent
+HERE = Path(__file__).resolve().parent
+# Repo root (local/Render) or `backend` itself (Vercel Root Directory = backend).
+if (HERE / "public").is_dir() or (HERE / "index.html").is_file():
+    ROOT = HERE
+elif (HERE.parent / "public").is_dir() or (HERE.parent / "index.html").is_file():
+    ROOT = HERE.parent
+else:
+    ROOT = HERE.parent
 load_dotenv(ROOT / ".env")
+load_dotenv(HERE / ".env")
 
 APP_URL = os.getenv("APP_URL", "http://127.0.0.1:8765").rstrip("/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
@@ -36,9 +43,11 @@ PAYPAL_SITE = "https://www.paypal.com" if PAYPAL_MODE == "live" else "https://ww
 app = FastAPI(title="ClipCut")
 
 
-def db() -> Client:
+def db() -> Any:
     if not SUPABASE_URL or not SERVICE_KEY:
         raise HTTPException(503, "Supabase is not configured.")
+    from supabase import create_client
+
     return create_client(SUPABASE_URL, SERVICE_KEY)
 
 

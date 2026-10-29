@@ -509,4 +509,7 @@ def public_file(name: str):
     return FileResponse(path)
 
 
-from .paypal_main import app as app
+try:
+    from .paypal_main import app as app
+except ImportError:
+    from paypal_main import app as app

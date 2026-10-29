@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClipCut — simple audio editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2312100d'/><path d='M10 32h16l6-14 8 28 6-14h8' stroke='%23f0b429' stroke-width='4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="app">
+    <header class="hero">
+      <p class="eyebrow">Browser audio studio</p>
+      <h1>ClipCut</h1>
+      <p class="lede">
+        Upload a recording. Keep a slice, copy between clips, record on top, then download.
+      </p>
+      <div class="hero-actions">
+        <button type="button" class="lang-toggle" id="langToggle">עברית</button>
+        <button type="button" class="account-chip" id="accountChip">Sign in</button>
+      </div>
+    </header>
+
+    <section class="sources" aria-label="Get audio">
+      <label class="source-card source-primary">
+        <input id="fileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac" hidden />
+        <span class="source-kicker">Most common</span>
+        <strong>Upload a recording</strong>
+        <span>MP3, WAV, M4A, and similar</span>
+      </label>
+      <button type="button" class="source-card" id="recordBtn">
+        <span class="source-kicker">Optional</span>
+        <strong id="recordLabel">Record instead</strong>
+        <span id="recordHint">Uses your microphone</span>
+      </button>
+      <button type="button" class="source-card" id="aiBtn">
+        <span class="source-kicker">Surprise</span>
+        <strong>Random AI singing</strong>
+        <span>Then cut pieces as usual</span>
+      </button>
+    </section>
+
+    <div id="dropHint" class="drop-hint">Or drop an audio file anywhere on this page.</div>
+
+    <section id="editor" class="editor hidden">
+      <div class="clip-meta">
+        <div>
+          <p class="clip-name" id="clipName">Untitled</p>
+          <p class="clip-sub" id="clipSub">0.0 seconds</p>
+        </div>
+        <div class="clip-actions">
+          <button type="button" class="ghost" id="undoBtn" disabled>Undo</button>
+          <button type="button" class="ghost" id="newClipBtn">New clip</button>
+        </div>
+      </div>
+
+      <div class="a-stage">
+        <div class="a-tools">
+          <article class="a-tool">
+            <h2>Volume, pitch &amp; speed</h2>
+            <div class="a-sliders">
+              <label class="slider-row">
+                <span>Volume</span>
+                <input id="selVol" type="range" min="0" max="200" value="100" />
+                <strong id="selVolLabel">100%</strong>
+              </label>
+              <label class="slider-row">
+                <span>Pitch</span>
+                <input id="selPitch" type="range" min="-12" max="12" value="0" />
+                <strong id="selPitchLabel">0 st</strong>
+              </label>
+              <label class="slider-row">
+                <span>Speed</span>
+                <input id="selSpeed" type="range" min="50" max="200" value="100" />
+                <strong id="selSpeedLabel">1.00×</strong>
+              </label>
+            </div>
+            <div class="speed-presets" role="group" aria-label="Speed presets">
+              <button type="button" class="ghost speed-btn" data-speed="0.5">0.5×</button>
+              <button type="button" class="ghost speed-btn" data-speed="1">1×</button>
+              <button type="button" class="ghost speed-btn" data-speed="1.5">1.5×</button>
+              <button type="button" class="ghost speed-btn" data-speed="2">2×</button>
+              <button type="button" class="ghost" id="previewTuneBtn">Play preview</button>
+              <button type="button" class="ghost" id="applyTuneBtn">Apply to selection</button>
+            </div>
+          </article>
+          <article class="a-tool echo">
+            <h2>Echo</h2>
+            <div class="echo-row">
+              <label class="slider-row">
+                <span>Amount</span>
+                <input id="echoAmt" type="range" min="0" max="100" value="35" />
+                <strong id="echoLabel">35%</strong>
+              </label>
+              <button type="button" class="ghost" id="applyEchoBtn">Add echo</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="track-card track-main active" id="trackA" data-track="a">
+          <div class="track-head">
+            <div>
+              <p class="track-kicker">Clip A</p>
+              <p class="track-title" id="trackATitle">Your recording</p>
+            </div>
+            <div class="layer-btns">
+              <button type="button" class="ghost" id="copyABtn">Copy selection</button>
+              <button type="button" class="ghost" id="cutABtn">Cut selection</button>
+              <button type="button" class="ghost" id="pasteOnTopABtn">Paste on top</button>
+              <button type="button" class="ghost" id="pasteOnTopFixedABtn">Paste on top fixed</button>
+              <button type="button" class="ghost" id="pasteInsteadABtn">Paste instead</button>
+            </div>
+          </div>
+          <div class="wave-card">
+            <canvas id="wave" height="200"></canvas>
+            <div class="wave-legend">
+              <span id="timeStart">0.0s</span>
+              <span id="selReadout">Click to set the bar, drag to select a range</span>
+              <span id="timeEnd">0.0s</span>
+            </div>
+          </div>
+          <div class="transport">
+            <button type="button" class="play" id="playBtn">Play from bar</button>
+            <button type="button" class="ghost" id="playSelBtn">Play selection</button>
+            <button type="button" class="ghost" id="skipBackBtn">−1s</button>
+            <button type="button" class="ghost" id="skipFwdBtn">+1s</button>
+            <button type="button" class="ghost" id="skipFwd5Btn">+5s</button>
+            <span class="playhead-readout" id="playheadReadout">Bar at 0.0s</span>
+            <label class="time-field">
+              Start
+              <input id="tStart" type="number" min="0" step="0.1" />
+              <span>sec</span>
+            </label>
+            <label class="time-field">
+              End
+              <input id="tEnd" type="number" min="0" step="0.1" />
+              <span>sec</span>
+            </label>
+            <button type="button" class="ghost" id="fullSelBtn">Select all</button>
+          </div>
+        </div>
+
+        <div class="track-card track-b" id="trackB" data-track="b">
+          <div class="track-head">
+            <div>
+              <p class="track-kicker">Clip B</p>
+              <p class="track-title" id="trackBTitle">Load a second recording</p>
+            </div>
+            <div class="layer-btns">
+              <button type="button" class="play" id="playBBtn">Play B</button>
+              <button type="button" class="ghost" id="playBSelBtn">Play B selection</button>
+              <label class="ghost as-label">
+                Load clip B
+                <input id="clipBInput" type="file" accept="audio/*" hidden />
+              </label>
+              <button type="button" class="ghost" id="copyBBtn">Copy selection</button>
+              <button type="button" class="ghost" id="cutBBtn">Cut selection</button>
+              <button type="button" class="ghost" id="pasteOnTopBBtn">Paste on top</button>
+              <button type="button" class="ghost" id="pasteOnTopFixedBBtn">Paste on top fixed</button>
+              <button type="button" class="ghost" id="pasteInsteadBBtn">Paste instead</button>
+            </div>
+          </div>
+          <div class="wave-card wave-card-b">
+            <canvas id="waveB" height="72"></canvas>
+            <div class="wave-legend">
+              <span id="timeStartB">0.0s</span>
+              <span id="selReadoutB">Click to set B’s bar, drag to select</span>
+              <span id="timeEndB">0.0s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cut-modes" role="tablist">
+        <button type="button" class="cut-mode active" data-mode="keep" id="modeKeep">
+          <em>Keep this part</em>
+          <small>Example: keep 10s–20s. Everything else is deleted.</small>
+        </button>
+        <button type="button" class="cut-mode" data-mode="cut" id="modeCut">
+          <em>Cut this part out</em>
+          <small>Example: delete 10s–20s. Join 0–10 with 20–end into one clip.</small>
+        </button>
+      </div>
+
+      <button type="button" class="btn-apply" id="applyCutBtn">Keep the selected part</button>
+
+      <article class="tool wide">
+        <h2>Record into the selection</h2>
+        <p>
+          Hear the selected part while you sing or talk. Use headphones so the speaker does not leak into the mic.
+          Recording stops when that part ends, or when you press stop.
+        </p>
+        <div class="cut-modes overdub-modes">
+          <button type="button" class="cut-mode active" data-overdub="ontop" id="overdubOnTop">
+            <em>On top</em>
+            <small>Mix your take with the existing sound so both are heard.</small>
+          </button>
+          <button type="button" class="cut-mode" data-overdub="instead" id="overdubInstead">
+            <em>Instead</em>
+            <small>Delete the selected part and put your new take in its place.</small>
+          </button>
+        </div>
+        <button type="button" class="btn-apply" id="overdubBtn">Record on top of selection</button>
+        <p class="tiny" id="overdubStatus"></p>
+      </article>
+
+      <div class="tool-grid">
+        <article class="tool">
+          <h2>Layer another clip</h2>
+          <p>Stack a second recording on top so both are heard at once, then merge and download.</p>
+          <div id="layerEmpty" class="layer-empty">
+            <label class="ghost as-label">
+              Choose second file
+              <input id="layerInput" type="file" accept="audio/*" hidden />
+            </label>
+          </div>
+          <div id="layerLoaded" class="layer-loaded hidden">
+            <p class="layer-name" id="layerName">Second clip</p>
+            <label class="slider-row">
+              <span>Your clip</span>
+              <input id="volMain" type="range" min="0" max="100" value="85" />
+            </label>
+            <label class="slider-row">
+              <span>Layer</span>
+              <input id="volLayer" type="range" min="0" max="100" value="85" />
+            </label>
+            <div class="layer-map" id="layerMap">
+              <div class="layer-map-stage" id="layerMapStage">
+                <div class="layer-map-row">
+                  <span>Main</span>
+                  <canvas id="layerMapMain" height="40"></canvas>
+                </div>
+                <svg id="layerMapArrows" class="layer-map-svg" aria-hidden="true"></svg>
+                <div class="layer-map-row">
+                  <span>Layer</span>
+                  <canvas id="layerMapLayer" height="40"></canvas>
+                </div>
+              </div>
+              <p class="tiny" id="layerMapHint">Drag a piece on Layer, drag where it lands on Main, then Add arrow.</p>
+              <div class="layer-btns layer-map-modes">
+                <button type="button" class="ghost layer-map-mode active" data-layermode="ontop">On top</button>
+                <button type="button" class="ghost layer-map-mode" data-layermode="instead">Instead</button>
+                <button type="button" class="ghost layer-map-mode" data-layermode="ontop-fixed">On top fixed</button>
+                <button type="button" class="ghost" id="layerMapAddBtn">Add arrow</button>
+              </div>
+              <div id="layerMapList" class="layer-map-list"></div>
+            </div>
+            <div class="layer-btns">
+              <button type="button" class="ghost" id="playMixBtn">Play both</button>
+              <button type="button" class="ghost" id="mergeBtn">Merge into one</button>
+              <button type="button" class="text-btn" id="clearLayerBtn">Remove layer</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="tool">
+          <h2>Voice vs music</h2>
+          <p>
+            Rough karaoke strip for stereo songs: cuts centered voice mainly in the vocal band, while trying to keep bass and side instruments. Still browser DSP, not studio AI separation.
+          </p>
+          <label class="slider-row">
+            <span>Strip</span>
+            <input id="vocalAmt" type="range" min="0" max="100" value="85" />
+            <strong id="vocalAmtLabel">85%</strong>
+          </label>
+          <div class="layer-btns">
+            <button type="button" class="ghost" id="stripVoiceBtn">Strip voice (keep music)</button>
+            <button type="button" class="ghost" id="findPartsBtn">Find voice-like parts</button>
+            <button type="button" class="text-btn" id="removeVoicePartsBtn">Remove voice-like parts</button>
+          </div>
+          <div id="segList" class="seg-list"></div>
+        </article>
+      </div>
+
+      <article class="tool wide">
+        <h2>Clean noise</h2>
+        <p>
+          Pull down hiss, room tone, fan rumble, and small edit noises in the selected part of Clip A.
+          Move the slider for how hard to clean. Undo if a voice gets thin.
+        </p>
+        <label class="slider-row">
+          <span>Amount</span>
+          <input id="noiseAmt" type="range" min="0" max="100" value="55" />
+          <strong id="noiseAmtLabel">55%</strong>
+        </label>
+        <div class="layer-btns">
+          <button type="button" class="ghost" id="previewNoiseBtn">Play preview</button>
+          <button type="button" class="ghost" id="applyNoiseBtn">Clean selection</button>
+        </div>
+      </article>
+
+      <article class="tool wide">
+        <h2>Second voice</h2>
+        <p>
+          Adds an extra voice on top of Clip A’s selection. Volume, timing, and pitch are already set — just pick a style.
+          Double is the safest. Third and fifth can clash on some notes. Undo if it is too much.
+        </p>
+        <div class="cut-modes harmony-picks">
+          <button type="button" class="cut-mode" data-harmony="double">
+            <em>Double</em>
+            <small>Same melody, a little late, quieter — like someone singing with you.</small>
+          </button>
+          <button type="button" class="cut-mode" data-harmony="third">
+            <em>High third</em>
+            <small>A third above, quieter and slightly late. Classic pop stack.</small>
+          </button>
+          <button type="button" class="cut-mode" data-harmony="fifth">
+            <em>Fifth above</em>
+            <small>A fifth above. Usually sits more steadily than a third.</small>
+          </button>
+          <button type="button" class="cut-mode" data-harmony="octave">
+            <em>Octave below</em>
+            <small>Same melody an octave down. Thicker, usually safe.</small>
+          </button>
+        </div>
+      </article>
+
+      <div class="download-row">
+        <span>Download</span>
+        <button type="button" class="btn-download" id="downloadWavBtn">WAV</button>
+        <button type="button" class="btn-download alt" id="downloadMp3Btn">MP3</button>
+        <button type="button" class="btn-download alt" id="downloadMp4Btn">MP4</button>
+        <span class="tiny download-access" id="downloadAccess">$1.50 per download · $3.50 / 7 days unlimited</span>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="paywall" class="paywall hidden" role="dialog" aria-labelledby="payTitle">
+    <div class="pay-card">
+      <button type="button" class="pay-close" id="payClose" aria-label="Close">×</button>
+      <p class="eyebrow">Download</p>
+      <h2 id="payTitle">Unlock your file</h2>
+      <p class="pay-copy" id="payHint">Editing stays in your browser. You pay only to download.</p>
+
+      <div id="paySigned" class="pay-signed hidden">
+        <span id="paySignedEmail"></span>
+        <button type="button" class="text-btn" id="paySignOut">Sign out</button>
+      </div>
+
+      <div id="payAuth">
+        <label class="pay-field">
+          Email
+          <input id="payEmail" type="email" autocomplete="email" />
+        </label>
+        <label class="pay-field">
+          Password
+          <input id="payPassword" type="password" autocomplete="current-password" />
+        </label>
+        <div class="layer-btns">
+          <button type="button" class="play" id="paySignIn">Sign in</button>
+          <button type="button" class="ghost" id="paySignUp">Create account</button>
+        </div>
+      </div>
+
+      <div id="payPlans" class="hidden">
+        <button type="button" class="pay-plan" id="paySingleBtn">
+          <strong id="paySingleLabel">$1.50 · one download</strong>
+          <span>Pay once for this file.</span>
+        </button>
+        <button type="button" class="pay-plan featured" id="payWeeklyBtn">
+          <strong id="payWeeklyLabel">$3.50 · 7 days unlimited</strong>
+          <span>Auto-renews weekly until you cancel.</span>
+        </button>
+        <button type="button" class="text-btn hidden" id="payManageBtn">Manage subscription</button>
+      </div>
+
+      <div class="pay-admin">
+        <p>Admin bypass</p>
+        <label class="pay-field">
+          Password
+          <input id="payAdminPassword" type="password" autocomplete="off" />
+        </label>
+        <button type="button" class="ghost" id="payAdminBtn">Unlock as admin</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="i18n.js?v=2"></script>
+  <script src="billing.js?v=5"></script>
+  <script src="app.js?v=7"></script>
+</body>
+</html>
