@@ -1,86 +1,50 @@
 ﻿# Public Deployment Guide
 
-This makes ClipCut accessible on the public internet. Payments can stay in sandbox or be ignored until later.
+ClipCut: edit free in the browser. Download costs **$2.50** via PayPal. No login / no database.
 
-## Recommended Host: Vercel
+## Vercel
 
-ClipCut is FastAPI + static files (`public/` + `app.py`).
-
-1. Go to https://vercel.com → Add New → Project.
-2. Import `Benihor/audio` (GitHub).
-3. Framework Preset: leave as detected **FastAPI** / Other — do **not** pick Next.js.
-4. If Vercel asks for a directory, choose **`backend`** (that folder is set up for Vercel).
-5. Add environment variables (same as below). Set `APP_URL` to your Vercel URL after first deploy, then redeploy.
-6. Deploy.
-
-If you see `FUNCTION_INVOCATION_FAILED`:
-- Root Directory must be **`backend`**
-- Confirm env vars are set, then **Redeploy** the latest commit
-
-After deploy, open `https://YOUR-PROJECT.vercel.app`.
-
-Update Supabase Site URL + Redirect URLs to that Vercel URL.
-
-## Alternate Host: Render
-
-1. Create a GitHub repo for `C:\Users\binih\clipcut`.
-2. Go to https://render.com
-3. New → Blueprint
-4. Connect the repo.
-5. Render will read `render.yaml`.
-6. Add environment variables when Render asks.
+1. Import `Benihor/audio`.
+2. Root Directory: **`backend`**
+3. Set env vars (below), then deploy.
+4. Domain: `https://www.audioeditscuts.com`
 
 ## Required Environment Variables
 
-Use the same values from local `.env`, but do not upload `.env` itself.
-
-Minimum for public editor + accounts:
-
 ```env
-APP_URL=https://YOUR-RENDER-URL.onrender.com
-SUPABASE_URL=...
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
+APP_URL=https://www.audioeditscuts.com
+PAYPAL_MODE=live
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
 ADMIN_PASSWORD=...
 ADMIN_COOKIE_SECRET=long-random-string
 ```
 
-Optional for PayPal later:
+## Live PayPal setup
 
-```env
-PAYPAL_MODE=sandbox
-PAYPAL_CLIENT_ID=...
-PAYPAL_CLIENT_SECRET=...
-PAYPAL_WEBHOOK_ID=
-PAYPAL_PLAN_WEEKLY=
-```
+1. Go to https://developer.paypal.com/dashboard/
+2. Log in with the PayPal account that should receive money.
+3. Open **Apps & Credentials**.
+4. Switch the toggle from **Sandbox** to **Live**.
+5. Under **REST API apps**, create an app (or open an existing Live app) named ClipCut.
+6. Copy **Client ID** and **Secret** (Live).
+7. In Vercel → Environment Variables, set:
+   - `PAYPAL_MODE=live`
+   - `PAYPAL_CLIENT_ID=` (Live Client ID)
+   - `PAYPAL_CLIENT_SECRET=` (Live Secret)
+   - `APP_URL=https://www.audioeditscuts.com`
+8. Redeploy the project.
+9. Test a real $2.50 payment (or a small refund afterward).
 
-## Supabase Settings
+Your Live app must be under a PayPal account that can accept business payments. If Live credentials are missing, finish PayPal business verification first.
 
-In Supabase → Authentication → URL Configuration:
+## How payment works
 
-```text
-Site URL: https://YOUR-RENDER-URL.onrender.com
-Redirect URLs: https://YOUR-RENDER-URL.onrender.com
-```
+1. User edits audio (free).
+2. Clicks Download → PayPal $2.50.
+3. After PayPal returns, the site unlocks **one** download (browser cookie, 24h).
+4. No accounts.
 
-## Start Command
+## Admin
 
-Render runs:
-
-```bash
-python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-```
-
-## After Deploy
-
-Open the Render URL. The editor should be public. Accounts should work if Supabase Email auth is enabled. Downloads/admin/payment behavior depends on the environment variables you set.
-
-## Custom Domain Later
-
-When you buy/use a domain, add it in Render → Settings → Custom Domains, then update:
-
-- `APP_URL`
-- Supabase Site URL
-- Supabase Redirect URLs
-- PayPal webhook URL later
+Set `ADMIN_PASSWORD` and use **Unlock as admin** on the paywall for free downloads while testing.

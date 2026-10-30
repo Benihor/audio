@@ -21,7 +21,7 @@
       </p>
       <div class="hero-actions">
         <button type="button" class="lang-toggle" id="langToggle">עברית</button>
-        <button type="button" class="account-chip" id="accountChip">Sign in</button>
+        <button type="button" class="account-chip" id="accountChip">Pay $2.50</button>
       </div>
     </header>
 
@@ -324,7 +324,7 @@
         <button type="button" class="btn-download" id="downloadWavBtn">WAV</button>
         <button type="button" class="btn-download alt" id="downloadMp3Btn">MP3</button>
         <button type="button" class="btn-download alt" id="downloadMp4Btn">MP4</button>
-        <span class="tiny download-access" id="downloadAccess">$1.50 per download · $3.50 / 7 days unlimited</span>
+        <span class="tiny download-access" id="downloadAccess">$2.50 per download · PayPal</span>
       </div>
     </section>
   </main>
@@ -336,38 +336,13 @@
       <button type="button" class="pay-close" id="payClose" aria-label="Close">×</button>
       <p class="eyebrow">Download</p>
       <h2 id="payTitle">Unlock your file</h2>
-      <p class="pay-copy" id="payHint">Editing stays in your browser. You pay only to download.</p>
+      <p class="pay-copy" id="payHint">Editing stays in your browser. Pay $2.50 once with PayPal to download. No account needed.</p>
 
-      <div id="paySigned" class="pay-signed hidden">
-        <span id="paySignedEmail"></span>
-        <button type="button" class="text-btn" id="paySignOut">Sign out</button>
-      </div>
-
-      <div id="payAuth">
-        <label class="pay-field">
-          Email
-          <input id="payEmail" type="email" autocomplete="email" />
-        </label>
-        <label class="pay-field">
-          Password
-          <input id="payPassword" type="password" autocomplete="current-password" />
-        </label>
-        <div class="layer-btns">
-          <button type="button" class="play" id="paySignIn">Sign in</button>
-          <button type="button" class="ghost" id="paySignUp">Create account</button>
-        </div>
-      </div>
-
-      <div id="payPlans" class="hidden">
-        <button type="button" class="pay-plan" id="paySingleBtn">
-          <strong id="paySingleLabel">$1.50 · one download</strong>
-          <span>Pay once for this file.</span>
+      <div id="payPlans">
+        <button type="button" class="pay-plan featured" id="paySingleBtn">
+          <strong id="paySingleLabel">$2.50 · one download</strong>
+          <span>Opens PayPal. After payment, click Download again.</span>
         </button>
-        <button type="button" class="pay-plan featured" id="payWeeklyBtn">
-          <strong id="payWeeklyLabel">$3.50 · 7 days unlimited</strong>
-          <span>Auto-renews weekly until you cancel.</span>
-        </button>
-        <button type="button" class="text-btn hidden" id="payManageBtn">Manage subscription</button>
       </div>
 
       <div class="pay-admin">
@@ -381,9 +356,8 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="i18n.js?v=2"></script>
-  <script src="billing.js?v=5"></script>
+  <script src="billing.js?v=8"></script>
   <script src="app.js?v=7"></script>
 </body>
 </html>
